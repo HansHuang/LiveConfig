@@ -5,7 +5,7 @@ Read/inject all json configs under specific directory, and keep runtime updating
 
 ## Install
 ```
-$ npm install -g liveconfig
+$ npm install liveconfig
 ```
 
 ## Usage
