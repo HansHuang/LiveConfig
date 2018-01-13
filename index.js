@@ -8,68 +8,60 @@ const path = require('path')
 
 module.exports = liveConfig
 
-async function liveConfig(configDir, eventEmittor) {
-    let allConfig = await Promise.resolve(injectConfigDir(configDir, eventEmittor))
-    watchConfigs(configDir, allConfig, eventEmittor)
+function liveConfig(configDir, eventEmitter) {
+    let allConfig = readConfigDir(configDir, eventEmitter)
+    watchConfigs(configDir, allConfig, eventEmitter)
     return allConfig
 }
 
-function injectConfigDir(configDir, eventEmittor) {
-    return new Promise((resolve, _) => {
-        fs.readdir(configDir, async (err, items) => {
+function readConfigDir(configDir, eventEmitter) {
 
-            let pmsList = items.filter(f => {
-                return f.endsWith('.json')
-            }).map(f => {
-                let filePath = path.resolve(configDir, f)
-                return injectJsonFile(filePath, eventEmittor)
-            })
+    let result = {}
 
-            let results = {};
-            (await Promise.all(pmsList)).filter(data => {
-                return data
-            }).forEach(data => {
-                Object.assign(results, data)
-            })
+    fs.readdirSync(configDir)
+        .filter(f => f.toLowerCase().endsWith('.json'))
+        .map(f => path.resolve(configDir, f))
+        .map(f => readJsonFile(f, eventEmitter))
+        .forEach(s => Object.assign(result, s))
 
-            resolve(results)
-        })
-    })
+    return result
 }
 
-function injectJsonFile(filePath, eventEmittor) {
-    return new Promise((resolve, _) => {
-        fs.readFile(filePath, (err, fileData) => {
-            let result = {}
-            if (err) {
-                eventEmittor && eventEmittor.emit && eventEmittor.emit('config.error', err, path.basename(filePath))
-            } else {
-                let configName = path.basename(filePath, '.json')
-                result[configName] = JSON.parse(fileData)
-            }
-            resolve(result)
-        })
-    })
+function readJsonFile(filePath, eventEmitter) {
+
+    let result = {}
+    try {
+
+        let jsonStr = fs.readFileSync(filePath).toString(),
+            configName = path.basename(filePath, '.json')
+
+        result[configName] = JSON.parse(jsonStr)
+
+    } catch (error) {
+        eventEmitter && eventEmitter.emit && eventEmitter.emit('config.error', error, path.basename(filePath))
+    }
+
+    return result
 }
 
-function watchConfigs(dir, config, eventEmittor) {
+function watchConfigs(dir, config, eventEmitter) {
     fs.watch(dir, (eventType, filename) => {
+
         if (filename) {
             if (!filename.endsWith('.json')) return;
 
-            injectJsonFile(path.join(dir, filename)).then(s => {
-                if (!s) return;
+            let update = readJsonFile(path.join(dir, filename))
+            if (!update) return;
 
-                Object.assign(config, s)
-                eventEmittor && eventEmittor.emit && eventEmittor.emit('config.updated', filename)
-            })
+            Object.assign(config, update)
+            eventEmitter && eventEmitter.emit && eventEmitter.emit('config.updated', filename)
+
         } else {
-            injectConfigDir(dir).then(s => {
-                if (!s) return;
+            let update = readConfigDir(dir)
+            if (!update) return;
 
-                Object.assign(config, s)
-                eventEmittor && eventEmittor.emit && eventEmittor.emit('config.allUpdated')
-            })
+            Object.assign(config, update)
+            eventEmitter && eventEmitter.emit && eventEmitter.emit('config.allUpdated')
         }
     });
 }

@@ -28,8 +28,5 @@ eventEmittor.on('config.error', filename => {
 })
 ```
 
-## Note
-__Reqire node v7.6+ for the _async/await_ feature__
-
 [npm-image]: https://img.shields.io/npm/v/liveconfig.svg?style=flat-square
 [npm-url]: https://www.npmjs.com/package/liveconfig

@@ -10,22 +10,21 @@ let myDir = path.resolve(__dirname, '.'),
 
 
 test('1. load config', async t => {
-    let config = await liveconfig(myDir)
+    let config = liveconfig(myDir)
     t.is(config.test.name, myName)
 })
 
 test.cb('2. realtime update config', t => {
-    let eventEmittor = new events.EventEmitter()
-    liveconfig(myDir, eventEmittor).then(config => {
+    let eventEmitter = new events.EventEmitter(),
+        config = liveconfig(myDir, eventEmitter)
 
-        eventEmittor.on('config.updated', _ => {
-            let err = config.test.name !== him
-            t.end(err)
-        })
-
-        let him = 'todd'
-        setConfigFile({ name: him })
+    eventEmitter.on('config.updated', _ => {
+        let err = config.test.name !== him
+        t.end(err)
     })
+
+    let him = 'todd'
+    setConfigFile({ name: him })
 })
 
 
