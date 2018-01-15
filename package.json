@@ -1,6 +1,6 @@
 {
   "name": "liveconfig",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Read/inject all json configs under specific directory, and keep runtime updating",
   "main": "index.js",
   "scripts": {
