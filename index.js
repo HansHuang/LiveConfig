@@ -8,9 +8,18 @@ const path = require('path')
 
 module.exports = liveConfig
 
+/**
+ * init config
+ * @param {string} configDir config directory name
+ * @param {EventEmitter} eventEmitter send or receive events
+ * @returns {*} config object
+ */
 function liveConfig(configDir, eventEmitter) {
     let allConfig = readConfigDir(configDir, eventEmitter)
-    watchConfigs(configDir, allConfig, eventEmitter)
+    let watcher = watchConfigs(configDir, allConfig, eventEmitter)
+
+    eventEmitter && eventEmitter.on('config.stop', () => watcher.close())
+
     return allConfig
 }
 
@@ -45,7 +54,7 @@ function readJsonFile(filePath, eventEmitter) {
 }
 
 function watchConfigs(dir, config, eventEmitter) {
-    fs.watch(dir, (eventType, filename) => {
+    return fs.watch(dir, (eventType, filename) => {
 
         if (filename) {
             if (!filename.endsWith('.json')) return;
@@ -53,7 +62,15 @@ function watchConfigs(dir, config, eventEmitter) {
             let update = readJsonFile(path.join(dir, filename))
             if (!update) return;
 
-            Object.assign(config, update)
+            let key = Object.keys(update)[0]
+            if (!key) return;
+
+            if (config.hasOwnProperty(key)) {
+                Object.assign(config[key], update[key])
+            } else {
+                Object.assign(config, update)
+            }
+
             eventEmitter && eventEmitter.emit && eventEmitter.emit('config.updated', filename)
 
         } else {

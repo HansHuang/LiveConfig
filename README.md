@@ -5,7 +5,7 @@ Read/inject all json configs under specific directory, and keep runtime updating
 
 ## Install
 ```
-$ npm install liveconfig
+$ npm install liveconfig -S
 ```
 
 ## Usage
@@ -19,9 +19,13 @@ console.log(config.user.name) //'hans'
 // if you want to catch the event, pass me the event emittor
 let eventEmitter = new require('events').EventEmitter(),
     config = liveconfig(myDir, eventEmitter)
+
 eventEmitter.on('config.error', filename => {
     console.log(`failed to read config: ${filename}`)
 })
+
+// if you want to stop config file watching, emit a "stop" event
+// eventEmitter.emit('config.stop')
 
 ```
 

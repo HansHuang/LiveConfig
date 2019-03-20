@@ -11,6 +11,8 @@ declare module 'liveconfig' {
      * 2. config.updated
      * 3. config.allUpdated
      * 
+     * Receive below event to stop config watching
+     * 1. config.stop
      */
 
     export default function (configDir: string, eventEmitter?: EventEmitter): any
