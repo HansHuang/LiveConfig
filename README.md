@@ -1,5 +1,5 @@
 # LiveConfig
-Read/inject all json configs under specific directory, and keep runtime updating
+Read/inject all **json** or **yaml** configs under specific directory, and keep runtime updating
 
 [![NPM version][npm-image]][npm-url]
 
@@ -11,10 +11,16 @@ $ npm install liveconfig -S
 ## Usage
 
 ```js
-
-//json file name: 'user.json', content: {name: 'hans'}
+/*
+ * there are 2 files in configDir:
+ * user.json: {name: 'hans'}
+ * system.yaml: domain: 'b.cc'
+ */
 let config = liveconfig(configDir)
 console.log(config.user.name) //'hans'
+console.log(config.system.domain) //'b.cc'
+// update system.yaml file with new content: domain: a.cc
+console.log(config.system.domain) //'a.cc'
 
 // if you want to catch the event, pass me the event emittor
 let eventEmitter = new require('events').EventEmitter(),
@@ -28,6 +34,7 @@ eventEmitter.on('config.error', filename => {
 // eventEmitter.emit('config.stop')
 
 ```
+
 
 [npm-image]: https://img.shields.io/npm/v/liveconfig.svg?style=flat-square
 [npm-url]: https://www.npmjs.com/package/liveconfig

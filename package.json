@@ -1,7 +1,7 @@
 {
   "name": "liveconfig",
-  "version": "2.0.3",
-  "description": "Read/inject all json configs under specific directory, and keep runtime updating",
+  "version": "3.0.0",
+  "description": "Read/inject all json/yaml configs under specific directory, and keep runtime updating",
   "main": "index.js",
   "scripts": {
     "test": "ava -v"
@@ -23,5 +23,8 @@
   "homepage": "https://github.com/HansHuang/LiveConfig#readme",
   "devDependencies": {
     "ava": "^1.3.1"
+  },
+  "dependencies": {
+    "js-yaml": "^4.0.0"
   }
 }

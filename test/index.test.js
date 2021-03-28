@@ -1,21 +1,30 @@
 const path = require('path'),
     fs = require('fs'),
     test = require('ava'),
-    events = require('events')
+    events = require('events'),
+    yaml = require('js-yaml')
 
 const liveconfig = require('../index')
 
-const myDir = path.resolve(__dirname, '.'),
+const myDir = path.join(__dirname, 'config'),
     myName = 'hans'
 
 
 test.beforeEach('init test config', t => {
     setConfigFile({ name: myName })
+    setConfigFile({ obj: { name: 'Jan', task: 'coding' } }, 'baz.yaml')
+})
+
+test.afterEach('reset config', t => {
+    setConfigFile({ obj: { name: 'Jan', task: 'coding' } }, 'baz.yaml')
 })
 
 test('1. load config', async t => {
     let config = liveconfig(myDir)
     t.is(config.test.name, myName)
+
+    t.is(config.baz.obj.task, 'coding')
+    t.is(config.bar.seq[2], 'Earth')
 })
 
 test.cb('2. realtime update config', t => {
@@ -52,10 +61,28 @@ test('3. stop config watching', async t => {
     t.is(config.foo.name, him)
 })
 
+test.cb('4. load yaml file', t => {
+    sleep(300).then(_ => {
+        const eventEmitter = new events.EventEmitter(),
+            config = liveconfig(myDir, eventEmitter)
+
+        eventEmitter.on('config.updated', _ => {
+            t.is(config.baz.obj.name, myName)
+            t.end(!Array.isArray(config.baz.obj.arr))
+        })
+
+        setConfigFile({ obj: { name: myName, arr: [2] } }, 'baz.yaml')
+    })
+})
+
 
 function setConfigFile(target, file) {
     let myFile = path.resolve(myDir, file || 'test.json')
-    fs.writeFileSync(myFile, JSON.stringify(target))
+    if (myFile.toLowerCase().endsWith('.json')) {
+        fs.writeFileSync(myFile, JSON.stringify(target))
+    } else {
+        fs.writeFileSync(myFile, yaml.dump(target))
+    }
 }
 
 function sleep(ms) {

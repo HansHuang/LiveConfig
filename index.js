@@ -1,10 +1,14 @@
 /**
  * Hans Huang @ 8th April, 2017
  * Version 1.1.0
+ * 
+ * Version 3.0.0 @ Mar 28th 2021: support YAML config
  */
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('fs'),
+    path = require('path'),
+    yaml = require('js-yaml')
+
 
 module.exports = liveConfig
 
@@ -15,8 +19,8 @@ module.exports = liveConfig
  * @returns {*} config object
  */
 function liveConfig(configDir, eventEmitter) {
-    let allConfig = readConfigDir(configDir, eventEmitter)
-    let watcher = watchConfigs(configDir, allConfig, eventEmitter)
+    const allConfig = readConfigDir(configDir, eventEmitter),
+        watcher = watchConfigs(configDir, allConfig, eventEmitter)
 
     eventEmitter && eventEmitter.on('config.stop', () => watcher.close())
 
@@ -24,32 +28,33 @@ function liveConfig(configDir, eventEmitter) {
 }
 
 function readConfigDir(configDir, eventEmitter) {
-
-    let result = {}
-
-    fs.readdirSync(configDir)
-        .filter(f => f.toLowerCase().endsWith('.json'))
+    return fs.readdirSync(configDir)
         .map(f => path.resolve(configDir, f))
-        .map(f => readJsonFile(f, eventEmitter))
-        .forEach(s => Object.assign(result, s))
-
-    return result
+        .map(f => readConfigFile(f, eventEmitter))
+        .reduce((pre, cur) => ({ ...pre, ...cur }), {})
 }
 
-function readJsonFile(filePath, eventEmitter) {
+function readConfigFile(filePath, eventEmitter) {
 
-    let result = {}
+    const result = {},
+        parsers = {
+            'YAML': yaml.load,
+            "JSON": JSON.parse
+        },
+        fileType = getFileType(filePath)
+
+    if (!fileType || !parsers[fileType]) return result;
+
+    console.log(`Reading Config File: ${filePath}`);
     try {
+        const configStr = fs.readFileSync(filePath).toString(),
+            configName = path.basename(filePath).split('.')[0]
 
-        let jsonStr = fs.readFileSync(filePath).toString(),
-            configName = path.basename(filePath, '.json')
-
-        result[configName] = JSON.parse(jsonStr)
+        result[configName] = parsers[fileType](configStr)
 
     } catch (error) {
         eventEmitter && eventEmitter.emit && eventEmitter.emit('config.error', error, path.basename(filePath))
     }
-
     return result
 }
 
@@ -57,9 +62,10 @@ function watchConfigs(dir, config, eventEmitter) {
     return fs.watch(dir, (eventType, filename) => {
 
         if (filename) {
-            if (!filename.endsWith('.json')) return;
+            const fileType = getFileType(filename)
+            if (!fileType) return;
 
-            let update = readJsonFile(path.join(dir, filename))
+            let update = readConfigFile(path.join(dir, filename), eventEmitter)
             if (!update) return;
 
             let key = Object.keys(update)[0]
@@ -81,4 +87,11 @@ function watchConfigs(dir, config, eventEmitter) {
             eventEmitter && eventEmitter.emit && eventEmitter.emit('config.allUpdated')
         }
     });
+}
+
+function getFileType(filename) {
+    if (!filename) return ''
+    if (path.extname(filename.toLowerCase()) == '.json') return 'JSON';
+    if (['.yml', '.yaml'].some(x => filename.toLowerCase().endsWith(x))) return 'YAML';
+    return ''
 }
