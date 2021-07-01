@@ -19,10 +19,27 @@ module.exports = liveConfig
  * @returns {*} config object
  */
 function liveConfig(configDir, eventEmitter) {
-    const allConfig = readConfigDir(configDir, eventEmitter),
-        watcher = watchConfigs(configDir, allConfig, eventEmitter)
+    const allConfig = readConfigDir(configDir, eventEmitter);
+    let watcher = watchConfigs(configDir, allConfig, eventEmitter),
+        isConfigDirGone = false;
 
-    eventEmitter && eventEmitter.on('config.stop', () => watcher.close())
+    // Ugly solution !!!
+    watchInterval = setInterval(() => {
+        fs.access(configDir, err => {
+            if (err) {
+                isConfigDirGone = true;
+                watcher && watcher.close();
+            } else if (isConfigDirGone) {
+                isConfigDirGone = false;
+                watcher = watchConfigs(configDir, allConfig, eventEmitter);
+            }
+        })
+    }, 1000);
+
+    eventEmitter && eventEmitter.on('config.stop', () => {
+        watcher && watcher.close();
+        clearInterval(watchInterval);
+    });
 
     return allConfig
 }
@@ -45,7 +62,7 @@ function readConfigFile(filePath, eventEmitter) {
 
     if (!fileType || !parsers[fileType]) return result;
 
-    console.log(`Reading Config File: ${filePath}`);
+    console.log(`${new Date().toLocaleString()} - Reading Config File: ${filePath}`);
     try {
         const configStr = fs.readFileSync(filePath).toString(),
             configName = path.basename(filePath).split('.')[0]
@@ -60,6 +77,7 @@ function readConfigFile(filePath, eventEmitter) {
 
 function watchConfigs(dir, config, eventEmitter) {
     return fs.watch(dir, (eventType, filename) => {
+        // console.log(`${new Date().toLocaleString()} - dir: ${dir}, eventType: ${eventType}, filename: ${filename}`);
 
         if (filename) {
             const fileType = getFileType(filename)
