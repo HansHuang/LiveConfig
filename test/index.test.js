@@ -61,18 +61,42 @@ test('3. stop config watching', async t => {
     t.is(config.foo.name, him)
 })
 
-test.cb('4. load yaml file', t => {
-    sleep(300).then(_ => {
-        const eventEmitter = new events.EventEmitter(),
-            config = liveconfig(myDir, eventEmitter)
+test('4. load yaml file', async t => {
+    await sleep(300);
+    const eventEmitter = new events.EventEmitter(),
+        config = liveconfig(myDir, eventEmitter)
 
+    setConfigFile({ obj: { name: myName, arr: [2] } }, 'baz.yaml')
+    await new Promise(res => {
         eventEmitter.on('config.updated', _ => {
             t.is(config.baz.obj.name, myName)
-            t.end(!Array.isArray(config.baz.obj.arr))
+            t.true(Array.isArray(config.baz.obj.arr))
+            res()
         })
-
-        setConfigFile({ obj: { name: myName, arr: [2] } }, 'baz.yaml')
     })
+})
+
+
+test('5. restore deleted config dir', async t => {
+    await sleep(400);
+    const eventEmitter = new events.EventEmitter(),
+        config = liveconfig(myDir, eventEmitter)
+
+    t.is(config.baz.obj.task, 'coding')
+
+    setConfigFile({ obj: { name: myName, task: 'coding2' } }, 'baz.yaml')
+    await sleep(100);
+    t.is(config.baz.obj.task, 'coding2');
+
+    const newDir = path.join(__dirname, 'config2')
+    fs.renameSync(myDir, newDir)
+    fs.writeFileSync(path.join(newDir, 'baz.yaml'),
+        yaml.dump({ obj: { name: myName, task: 'coding3' } }));
+    await sleep(1100);
+    fs.renameSync(newDir, myDir)
+
+    await sleep(1100);
+    t.is(config.baz.obj.task, 'coding3')
 })
 
 

@@ -9,7 +9,6 @@ declare module 'liveconfig' {
      * Name list for emitted event:
      * 1. config.error
      * 2. config.updated
-     * 3. config.allUpdated
      * 
      * Receive below event to stop config watching
      * 1. config.stop

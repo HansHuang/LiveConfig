@@ -24,20 +24,21 @@ function liveConfig(configDir, eventEmitter) {
         isConfigDirGone = false;
 
     // Ugly solution !!!
-    watchInterval = setInterval(() => {
+    let watchInterval = setInterval(() => {
         fs.access(configDir, err => {
             if (err) {
                 isConfigDirGone = true;
-                watcher && watcher.close();
+                watcher && watcher.close() && (watcher = null);
             } else if (isConfigDirGone) {
                 isConfigDirGone = false;
                 watcher = watchConfigs(configDir, allConfig, eventEmitter);
+                updateWholeConfig(configDir, allConfig, eventEmitter);
             }
         })
     }, 1000);
 
     eventEmitter && eventEmitter.on('config.stop', () => {
-        watcher && watcher.close();
+        watcher && watcher.close() && (watcher = null);
         clearInterval(watchInterval);
     });
 
@@ -96,15 +97,19 @@ function watchConfigs(dir, config, eventEmitter) {
             }
 
             eventEmitter && eventEmitter.emit && eventEmitter.emit('config.updated', filename)
-
-        } else {
-            let update = readConfigDir(dir)
-            if (!update) return;
-
-            Object.assign(config, update)
-            eventEmitter && eventEmitter.emit && eventEmitter.emit('config.allUpdated')
+            return;
         }
+
+        updateWholeConfig(dir, config, eventEmitter);
     });
+}
+
+function updateWholeConfig(dir, config, eventEmitter) {
+    let update = readConfigDir(dir)
+    if (!update) return;
+
+    Object.assign(config, update)
+    eventEmitter && eventEmitter.emit && eventEmitter.emit('config.updated')
 }
 
 function getFileType(filename) {

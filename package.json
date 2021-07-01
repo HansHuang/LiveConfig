@@ -1,6 +1,6 @@
 {
   "name": "liveconfig",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Read/inject all json/yaml configs under specific directory, and keep runtime updating",
   "main": "index.js",
   "scripts": {
