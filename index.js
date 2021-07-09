@@ -20,26 +20,10 @@ module.exports = liveConfig
  */
 function liveConfig(configDir, eventEmitter) {
     const allConfig = readConfigDir(configDir, eventEmitter);
-    let watcher = watchConfigs(configDir, allConfig, eventEmitter),
-        isConfigDirGone = false;
-
-    // Ugly solution !!!
-    let watchInterval = setInterval(() => {
-        fs.access(configDir, err => {
-            if (err) {
-                isConfigDirGone = true;
-                watcher && watcher.close() && (watcher = null);
-            } else if (isConfigDirGone) {
-                isConfigDirGone = false;
-                watcher = watchConfigs(configDir, allConfig, eventEmitter);
-                updateWholeConfig(configDir, allConfig, eventEmitter);
-            }
-        })
-    }, 1000);
+    let watcher = watchConfigs(configDir, allConfig, eventEmitter);
 
     eventEmitter && eventEmitter.on('config.stop', () => {
         watcher && watcher.close() && (watcher = null);
-        clearInterval(watchInterval);
     });
 
     return allConfig
